@@ -1,0 +1,294 @@
+#visual 1
+colnames(farmers_markets_from_usda_farmers_markets_from_usda_)
+colnames(Food_access_food_access_research_atlas_)
+library(dplyr)
+library(ggplot2)
+state_poverty <- Food_access_food_access_research_atlas_ %>%
+  group_by(State) %>%
+  summarize(avg_poverty_rate = mean(PovertyRate, na.rm = TRUE), .groups = "drop")
+ggplot(state_poverty, aes(x = avg_poverty_rate, y = reorder(State, avg_poverty_rate))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Average County-Level Poverty Rate by State",
+    x = "Average Poverty Rate (%)",
+    y = "State"
+  ) +
+  theme_minimal()
+
+#visual 2
+lowest_poverty_states <- state_poverty %>%
+  slice_min(order_by = avg_poverty_rate, n = 5)
+library(ggplot2)
+
+ggplot(lowest_poverty_states, aes(x = avg_poverty_rate, y = reorder(State, avg_poverty_rate))) +
+  geom_col(fill = "darkgreen") +
+  labs(
+    title = "5 States with the Lowest Average County-Level Poverty Rates",
+    x = "Average Poverty Rate (%)",
+    y = "State"
+  ) +
+  theme_minimal()
+
+#visual 3
+highest_poverty_states <- state_poverty %>%
+  slice_max(order_by = avg_poverty_rate, n = 5)
+library(ggplot2)
+
+ggplot(highest_poverty_states, aes(x = avg_poverty_rate, y = reorder(State, avg_poverty_rate))) +
+  geom_col(fill = "firebrick") +
+  labs(
+    title = "5 States with the Highest Average County-Level Poverty Rates",
+    x = "Average Poverty Rate (%)",
+    y = "State"
+  ) +
+  theme_minimal()
+
+#visual 4 total farmer's markets per top 5 and bottom 5 states
+
+group1 <- c("Mississippi", "Louisiana", "Alabama", "New Mexico", "Georgia")
+group2 <- c("New Jersey", "Alaska", "Maryland", "Hawaii", "New Hampshire")
+
+library(dplyr)
+
+state_market_counts <- farmers_markets_from_usda_farmers_markets_from_usda_ %>%
+  filter(State %in% c(group1, group2)) %>%
+  group_by(State) %>%
+  summarize(total_markets = n(), .groups = "drop") %>%
+  mutate(
+    Region = case_when(
+      State %in% group1 ~ "Group 1 (Southwest/Southeast)",
+      State %in% group2 ~ "Group 2 (Northeast/Other)"
+    )
+  )
+library(ggplot2)
+
+ggplot(state_market_counts, aes(x = total_markets, y = reorder(State, total_markets), fill = Region)) +
+  geom_col() +
+  labs(
+    title = "Total Farmers Markets by State",
+    subtitle = "Comparing Selected States Across Two Regional Groups",
+    x = "Number of Farmers Markets",
+    y = "State",
+    fill = "Region"
+  ) +
+  theme_minimal()
+
+
+#visual 5 county poverty rates and farmer markets
+farmers_df <- farmers_markets_from_usda_farmers_markets_from_usda_
+# Get 5 lowest-poverty states
+lowest_states <- state_poverty %>%
+  slice_min(order_by = avg_poverty_rate, n = 5) %>%
+  pull(State)
+
+# Get 5 highest-poverty states
+highest_states <- state_poverty %>%
+  slice_max(order_by = avg_poverty_rate, n = 5) %>%
+  pull(State)
+
+# Get single lowest and highest poverty states
+lowest_state <- lowest_states[1]
+highest_state <- highest_states[1]
+
+library(dplyr)
+
+markets_by_county <- farmers_df %>%
+  group_by(State, County) %>%
+  summarize(total_markets = n(), .groups = "drop")
+
+library(ggplot2)
+
+lowest_plot <- markets_by_county %>%
+  filter(State %in% lowest_states) %>%
+  ggplot(aes(x = total_markets, y = reorder(paste(County, State, sep = ", "), total_markets))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Farmers Markets per County in States with Lowest Poverty Rates",
+    x = "Total Markets",
+    y = "County, State"
+  ) +
+  theme_minimal()
+
+highest_plot <- markets_by_county %>%
+  filter(State %in% highest_states) %>%
+  ggplot(aes(x = total_markets, y = reorder(paste(County, State, sep = ", "), total_markets))) +
+  geom_col(fill = "firebrick") +
+  labs(
+    title = "Farmers Markets per County in States with Highest Poverty Rates",
+    x = "Total Markets",
+    y = "County, State"
+  ) +
+  theme_minimal()
+
+compare_plot <- markets_by_county %>%
+  filter(State %in% c(lowest_state, highest_state)) %>%
+  ggplot(aes(x = total_markets, y = reorder(paste(County, State, sep = ", "), total_markets), fill = State)) +
+  geom_col() +
+  labs(
+    title = paste("County-Level Farmers Market Comparison:", lowest_state, "vs", highest_state),
+    x = "Total Markets",
+    y = "County, State",
+    fill = "State"
+  ) +
+  theme_minimal()
+
+lowest_plot
+
+compare_plot
+
+
+highest_plot
+
+lowest_plot <- markets_by_county %>%
+  filter(State %in% lowest_states) %>%
+  slice_max(order_by = total_markets, n = 10) %>%
+  ggplot(aes(x = total_markets, y = reorder(paste(County, State, sep = ", "), total_markets))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 10 Counties by Farmers Markets (Lowest Poverty States)",
+    x = "Total Markets",
+    y = "County, State"
+  ) +
+  theme_minimal()
+
+lowest_plot
+
+highest_plot <- markets_by_county %>%
+  filter(State %in% highest_states) %>%
+  slice_max(order_by = total_markets, n = 10) %>%
+  ggplot(aes(x = total_markets, y = reorder(paste(County, State, sep = ", "), total_markets))) +
+  geom_col(fill = "firebrick") +
+  labs(
+    title = "Top 10 Counties by Farmers Markets (Highest Poverty States)",
+    x = "Total Markets",
+    y = "County, State"
+  ) +
+  theme_minimal()
+
+highest_plot
+
+#I lost count: whether they take benefits
+
+library(dplyr)
+
+county_counts <- farmers_df %>%
+  group_by(State, County) %>%
+  summarize(total_markets = n(), .groups = "drop")
+
+top_10_counties <- county_counts %>%
+  slice_max(order_by = total_markets, n = 10)
+
+bottom_10_counties <- county_counts %>%
+  slice_min(order_by = total_markets, n = 10)
+
+# Tag all markets as top, bottom, or NA
+farmers_tagged <- farmers_df %>%
+  mutate(
+    group = case_when(
+      paste(State, County) %in% paste(top_10_counties$State, top_10_counties$County) ~ "Top 10 Counties",
+      paste(State, County) %in% paste(bottom_10_counties$State, bottom_10_counties$County) ~ "Bottom 10 Counties",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(group))  # Keep only top/bottom 10
+
+
+library(tidyr)
+
+benefit_long <- farmers_tagged %>%
+  select(group, WIC, WICcash, SFMNP, SNAP) %>%
+  pivot_longer(cols = c(WIC, WICcash, SFMNP, SNAP),
+               names_to = "BenefitType",
+               values_to = "AcceptsBenefit")
+
+library(ggplot2)
+
+ggplot(benefit_long %>% filter(AcceptsBenefit == "Y"),
+       aes(x = BenefitType, fill = group)) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Farmers Markets in Top vs Bottom 10 Counties That Accept Benefits",
+    x = "Benefit Program",
+    y = "Number of Markets",
+    fill = "County Group"
+  ) +
+  theme_minimal()
+
+
+ggplot(benefit_long %>% filter(AcceptsBenefit == "Y"), 
+       aes(x = group, fill = group)) +
+  geom_bar() +
+  facet_wrap(~ BenefitType) +
+  labs(
+    title = "Acceptance of Benefits by Farmers Markets in Top vs Bottom 10 Counties",
+    x = "County Group",
+    y = "Number of Markets Accepting Benefit",
+    fill = "County Group"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+
+farmers_tagged <- farmers_tagged %>%
+  mutate(
+    group = case_when(
+      paste(State, County) %in% paste(top_10_counties$State, top_10_counties$County) ~ "Top 10 Counties",
+      paste(State, County) %in% paste(bottom_10_counties$State, bottom_10_counties$County) ~ "Bottom 10 Counties",
+      TRUE ~ NA_character_
+    ),
+    group = factor(group, levels = c("Top 10 Counties", "Bottom 10 Counties"))
+  ) %>%
+  filter(!is.na(group))
+
+ggplot(benefit_long %>% filter(AcceptsBenefit == "Y"), 
+       aes(x = group, fill = group)) +
+  geom_bar() +
+  facet_wrap(~ BenefitType) +
+  labs(
+    title = "Acceptance of Benefits by Farmers Markets in Top 10 vs Bottom 10 Counties",
+    x = "County Group",
+    y = "Number of Markets Accepting Benefit",
+    fill = "County Group"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+
+
+
+farmers_tagged <- farmers_df %>%
+  mutate(
+    group = case_when(
+      paste(State, County) %in% paste(top_10_counties$State, top_10_counties$County) ~ "Top 10 Counties",
+      paste(State, County) %in% paste(bottom_10_counties$State, bottom_10_counties$County) ~ "Bottom 10 Counties",
+      TRUE ~ NA_character_
+    ),
+    group = factor(group, levels = c("Top 10 Counties", "Bottom 10 Counties"))
+  ) %>%
+  filter(!is.na(group))
+
+library(tidyr)
+
+benefit_long <- farmers_tagged %>%
+  select(group, WIC, WICcash, SFMNP, SNAP) %>%
+  pivot_longer(
+    cols = c(WIC, WICcash, SFMNP, SNAP),
+    names_to = "BenefitType",
+    values_to = "AcceptsBenefit"
+  )
+
+
+library(ggplot2)
+
+ggplot(benefit_long %>% filter(AcceptsBenefit == "Y"), 
+       aes(x = group, fill = group)) +
+  geom_bar() +
+  facet_wrap(~ BenefitType) +
+  labs(
+    title = "Acceptance of Benefits by Farmers Markets in Top 10 vs Bottom 10 Counties",
+    x = "County Group",
+    y = "Number of Markets Accepting Benefit",
+    fill = "County Group"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
